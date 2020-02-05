@@ -1,0 +1,8 @@
+﻿  Source.cpp
+c:\users\nvnhu\onedrive\desktop\thorlabs\processingc\imageprocessing.h(46): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\nvnhu\onedrive\desktop\thorlabs\processingc\imageprocessing.h(152): warning C4244: 'initializing': conversion from 'const _Ty' to 'float', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+  ProcessingC.vcxproj -> C:\Users\nvnhu\OneDrive\Desktop\ThorLabs\x64\Debug\ProcessingCd.exe
