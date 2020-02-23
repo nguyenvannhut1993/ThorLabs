@@ -1,13 +1,18 @@
 #pragma once
 #include <iostream>
+#include<math.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/core/utility.hpp>
+#include <opencv2/highgui.hpp>
 
 using namespace cv;
+using namespace cv;
 using namespace std;
-//#define DEBUG
+#define DEBUG
+
 void DrawRotatedRectangle(Mat& image, RotatedRect rotatedRectangle, Scalar color)
 {
 	// Create the rotated rectangle
@@ -19,6 +24,17 @@ void DrawRotatedRectangle(Mat& image, RotatedRect rotatedRectangle, Scalar color
 	for (int i = 0; i < 4; i++) {
 		line(image, vertices2f[i], vertices2f[(i + 1) % 4], color, 1, 8);
 	}
+}
+Mat Canny_Detector(Mat src, int thresholdValue)
+{
+	if (!src.data)
+	{
+		return Mat();
+	}
+
+	Mat canny;
+	Canny(src, canny, thresholdValue, thresholdValue * 3, 3);
+	return canny;
 }
 Mat sobel_detector(Mat src)
 {
@@ -81,15 +97,19 @@ bool detectScratch(vector<Mat> vtImage) {
 		imwrite(path + to_string(i) + "img_sharpen.png", img_sharpen);
 #endif // DEBUG
 
-		
-		// end 
-
 		img_sobel = sobel_detector(img_sharpen);
+		Mat img_sobel_sharpen;
+		cv::GaussianBlur(img_sobel, img_sobel_sharpen, cv::Size(0, 0), 9);
+		cv::addWeighted(img_sobel, 1.5, img_sobel_sharpen, -0.5, 0, img_sobel_sharpen);
+		bitwise_not(img_sobel_sharpen, img_sobel_sharpen);
+		Mat img_canny = Canny_Detector(img_sobel_sharpen, 120);
 		// thresold sobel
-		threshold(img_sobel, img_thresold, 50, 255, CV_THRESH_BINARY);
-		Dilate(img_thresold, img_dilate, 9);
-		Erode(img_dilate, img_erode, 9);
+		threshold(img_canny, img_thresold, 100, 255, CV_THRESH_BINARY);
+		Dilate(img_thresold, img_dilate, 7);
+		Erode(img_dilate, img_erode, 7);
 #ifdef DEBUG
+		imwrite(path + to_string(i) + "img_canny.png", img_canny);
+		imwrite(path + to_string(i) + "img_sobel_sharpen.png", img_sobel_sharpen);
 		imwrite(path + to_string(i) + "img_sobel.png", img_sobel);
 		imwrite(path + to_string(i) + "img_thresold.png", img_thresold);
 #endif // DEBUG
@@ -101,8 +121,8 @@ bool detectScratch(vector<Mat> vtImage) {
 		bitwise_not(img_thresold_black_defect, img_thresold_black_defect);
 		std::vector<std::vector<Point> > contours;
 		std::vector<Vec4i> hierarchy;
-
 		// and to remove outline
+
 		Mat img_and;
 		bitwise_and(img_thresold_black_defect, img_erode, img_and);
 #ifdef DEBUG
@@ -117,7 +137,6 @@ bool detectScratch(vector<Mat> vtImage) {
 		Dilate(img_and, img_and, 9);
 		Erode(img_and, img_and, 9);
 		findContours(img_and, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
-		cout << contours.size();
 		for (int j = 0; j < contours.size(); j++) {
 			RotatedRect rectTmp = minAreaRect(contours.at(j));
 			// compare area and width height defect
